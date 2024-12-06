@@ -1,0 +1,6 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/weapons/c_acm_splint_bars_base"
+	"$envmapmask" "models/weapons/c_acm_splint_bars_metallic"
+	"$surfaceprop" "Default"
+}

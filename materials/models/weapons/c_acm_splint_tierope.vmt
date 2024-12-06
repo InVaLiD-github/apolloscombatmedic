@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/weapons/c_acm_splint_tierope"
+	"$surfaceprop" "Default"
+}

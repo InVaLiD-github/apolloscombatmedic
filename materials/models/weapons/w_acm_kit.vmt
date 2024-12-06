@@ -1,0 +1,6 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/weapons/c_acm_kit"
+	"$surfaceprop" "Default"
+	"$nocull" 1
+}

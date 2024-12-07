@@ -377,6 +377,10 @@ function aCM.StopRagdollPlayer(ply, noSpawn)
     ply.aCM.RagdollData = nil
     ply:SetNWEntity("aCM.RagdollEntity", nil)
 
+    net.Start("aCM.IsDead")
+    	net.WriteBool(false)
+    net.Send(ply)
+
     for bone,broken in pairs(ply.aCM.brokenBones) do
     	if broken != true then return end
 

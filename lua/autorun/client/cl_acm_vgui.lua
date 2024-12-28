@@ -146,7 +146,7 @@ function aCM.DeadScreen()
 			if documentReady == true and aCM.TimeUntilDead != nil then
 				html:RunJavascript([[
 					var timer = document.getElementById("deathTimerNumbers");
-					timer.innerText = ]]..math.Round(aCM.TimeUntilDead-SysTime())..[[;
+					timer.innerText = ]]..math.Round(aCM.TimeUntilDead-CurTime())..[[;
 				]])
 			end
 		end
@@ -335,7 +335,7 @@ hook.Add("PostDrawOpaqueRenderables", "aCM.DrawOverlay", function()
     	aCM.HTML:RunJavascript([[
 			var timer = document.getElementById("tod");
 			if (timer) {
-				timer.innerText = "ESTIMATED TUD: ]]..aCM.FormatTime(ply.aCM.TimeUntilDead-SysTime())..[[";
+				timer.innerText = "ESTIMATED TUD: ]]..aCM.FormatTime(ply.aCM.TimeUntilDead-CurTime())..[[";
 			}
 
 			var bleeds = document.getElementById("bleeds");

@@ -120,7 +120,7 @@ net.Receive("aCM.Assessment", function()
 	LocalPlayer():ChatPrint("Assessment Complete:")
 	LocalPlayer():ChatPrint("	Bleeds: "..bleeds)
 	LocalPlayer():ChatPrint("	Broken Bones: "..brokenBonesString)
-	LocalPlayer():ChatPrint("	Seconds until death: "..math.Round(target.aCM.TimeUntilDead-SysTime()))
+	LocalPlayer():ChatPrint("	Seconds until death: "..math.Round(target.aCM.TimeUntilDead-CurTime()))
 end)
 
 net.Receive("aCM.IsDead", function()

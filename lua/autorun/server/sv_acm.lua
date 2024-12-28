@@ -567,8 +567,8 @@ function aCM.DoDeath(ply)
 		end
 	end
 
-	ply.aCM.TimeOfRagdoll = SysTime()
-	ply.aCM.TimeUntilDead = SysTime() + timeToLive
+	ply.aCM.TimeOfRagdoll = CurTime()
+	ply.aCM.TimeUntilDead = CurTime() + timeToLive
 	ply.aCM.DeathTimerDelay = timeToLive
 	ply.aCM.CanRespawn = false
 

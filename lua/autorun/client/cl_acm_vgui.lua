@@ -216,148 +216,235 @@ function aCM.SetPatientHTML()
 	]]..aCM.HTML.aCMCSS) --..aCM.FormatTime(ply.aCM.TimeUntilDead-SysTime())
 end
 
-hook.Add("PostDrawOpaqueRenderables", "aCM.DrawOverlay", function()
-	local ply, ragdoll = aCM.FindTarget()
-	if ply == nil or !IsValid(ply) then return end
-	if ragdoll == nil or !IsValid(ragdoll) then return end
+function aCM.DrawBone(x, y, color)
+	draw.RoundedBox(x, x-25, y-10, 10, 10, color)
+	draw.RoundedBox(x, x-25, y, 10, 10, color)
+	draw.RoundedBox(x, x+15, y-10, 10, 10, color)
+	draw.RoundedBox(x, x+15, y, 10, 10, color)
 
-    if aCM.HTML == nil then
-    	aCM.HTML = vgui.Create("DHTML")
-    	aCM.HTML:SetSize(600,170)
-    	aCM.HTML:SetPos(-300,(170/2)) 
-    	aCM.HTML:SetVisible(false)
-        aCM.HTML:SetPaintedManually(true)
+	draw.RoundedBox(0, x-20, y-5, 40, 10, color)
+end
 
-        aCM.HTML.aCMCSS = [[
-    		<style>
-    			body {
-    				color: #fff;
-    				font-family: Arial;
-    				background-color: #0000;
-    				overflow: hidden;
-    				text-align: center;
-    				margin: 0;
-    				padding: 0;
-    				display: flex;
-    				flex-direction: row;
-    			}
+-- `type` can either be "bone" or "bleed"
+function aCM.RenderNode(type, boneID, hitgroup, amount)
+	if !LocalPlayer():Alive() then return end
+	local localPos = aCM.Patient.aCM.RagdollEntity:GetBonePosition(boneID):ToScreen()
+	local color = nil
+	
+	-- This will be the 'Hitbox' for the bone. If localPos is within these values, the bone is in the center of the screen.
+	local hitbox = {
+		["min_x"] = ScrW()/2 - 20,
+		["max_x"] = ScrW()/2 + 20,
+		["min_y"] = ScrH()/2 - 20,
+		["max_y"] = ScrH()/2 + 20,
+	}
 
-    			#wrapper {
-    				background-color: #000a;
-    				overflow: hidden;
-    				border-radius: 10vw;
-    				padding-left: 5vw;
-    				padding-right: 5vw;
-    				height: 100%;
-    				align-self: center;
-    				display: flex;
-    				flex-direction: column;
-    				justify-content: center;
-    			}
+	if type == "bone" then
+		color = Color(255,255,255,50)
+	else
+		color = Color(255,0,0,50)
+	end
 
-    			h1 {
-    				width: fit-content;
-    				color: #f00;
-    				margin: auto;
-    				margin-top: 5vh;
-    				margin-bottom: 3vh;
-    				border-bottom: 2vh solid #f00;
-    				font-size: 3vw;
-    			}
+	if (localPos.x >= hitbox.min_x and localPos.y >= hitbox.min_y) and (localPos.x <= hitbox.max_x and localPos.y <= hitbox.max_y) then
+		if LocalPlayer():GetActiveWeapon():GetClass() == "acm_bandage" or LocalPlayer():GetActiveWeapon():GetClass() == "acm_splint" then
+			if type == "bone" then
+				if LocalPlayer():GetWeapon("acm_splint"):Clip1() > 0 then
+					color = Color(255,255,255,255)
+				end
+			else
+				if LocalPlayer():GetWeapon("acm_bandage"):Clip1() > 0 then
+					color = Color(255,0,0,255)
+				end
+			end
+		end
 
-    			img {
-    				width: 75px;
-    				height: 75px;
-    				object-fit: contain;
-    				float: left;
-    				align-self: center;
-    				margin-right: 4vw;
-    			}
+		if LocalPlayer():KeyPressed(IN_USE) then
+			if LocalPlayer():GetActiveWeapon():GetClass() == "acm_bandage" or LocalPlayer():GetActiveWeapon():GetClass() == "acm_splint" then
+				-- Player selected this node. Let's start a minigame!
+				if aCM.CurrentMinigame == nil then
+					math.randomseed(SysTime()+CurTime())
+					aCM.CurrentMinigame = {
+						['type'] = type,
+						['boneID'] = boneID,
+						['hitgroup'] = hitgroup,
+						['amount'] = amount,
+						['progress'] = 0,
+						['difficulty'] = math.Rand(1, 10)
+					}
+				end
+			end
+		end
+	end
 
-    			#downed {
-    				font-weight: 600;
-    				font-size: 3vw;
-    				margin-top:0;
-    			}
+	-- Draw the indicator that a bone has been broken
+	if type == "bone" then
+		aCM.DrawBone(localPos.x, localPos.y, color)
+		if LocalPlayer():GetWeapon("acm_splint"):Clip1() <= 0 then
+			draw.DrawText("No Splints Remaining!", "DermaDefault", localPos.x, localPos.y+10, Color(255,255,255), TEXT_ALIGN_CENTER)
+		end
+	else
+		draw.RoundedBox(20, localPos.x-10, localPos.y-10, 20, 20, color)
+		if amount >= 2 then
+			draw.DrawText("x"..tostring(amount), "DermaLarge", localPos.x, localPos.y, color, TEXT_ALIGN_LEFT)
+		end
 
-    			#info {
-    				font-weight: 0;
-    				font-size: 2vw;
-    				margin: 0;
-    				padding: 0;
-    			}
+		if LocalPlayer():GetWeapon("acm_bandage"):Clip1() <= 0 then
+			draw.DrawText("No Bandages Remaining!", "DermaDefault", localPos.x, localPos.y-10, Color(255,255,255), TEXT_ALIGN_CENTER)
+		end
+	end
+end
 
-    			#vital-div {
-					display: flex;
-					flex-direction: row;
-					justify-content: space-evenly;
-				}
+-- Show the overlay for all of the bleeds
+function aCM.RenderBleeds()
+	if LocalPlayer():GetActiveWeapon():GetClass() != "acm_bandage" and LocalPlayer():GetActiveWeapon():GetClass() != "acm_medkit" then return end
 
-				.vital-p {
-					align-self: center;
-					font-size: 5vw;
-					margin: 0;
-				}
+	for bone, amount in pairs(aCM.Patient.aCM.bleedBonePositions) do
+		local boneID = aCM.Patient.aCM.RagdollEntity:LookupBone(aCM.HitGroupBoneTranslation[bone])
+		aCM.RenderNode("bleed", boneID, bone, amount)
+	end
+end
 
-				#vital-img {
-					align-self: center;
-					width: 10vw !important;
-					height: 10vw !important;
-					object-fit: contain;
-				}
+-- Show the overlay for all of the broken bones
+function aCM.RenderBones()
+	if LocalPlayer():GetActiveWeapon():GetClass() != "acm_splint" and LocalPlayer():GetActiveWeapon():GetClass() != "acm_medkit" then return end
 
-				#heart {
-					filter: brightness(0) saturate(100%) invert(21%) sepia(82%) saturate(5594%) hue-rotate(354deg) brightness(90%) contrast(126%);
-				}
-    	
-    	</style>
-    	]]
+	for bone,broken in pairs(aCM.Patient.aCM.brokenBones) do
+		if !broken then continue end
 
-        if aCM.Patient == ply then
-        	aCM.SetPatientHTML()
-        else
-        	aCM.SetDownedHTML()
-        end
+		local boneID = aCM.Patient.aCM.RagdollEntity:LookupBone(aCM.HitGroupBoneTranslation[bone])
+		
+		aCM.RenderNode("bone", boneID, bone)
+	end
+end
 
-        aCM.HTML.documentReady = false
-        function aCM.HTML:OnDocumentReady()
-        	aCM.HTML.documentReady = true
-        end
-    end
+-- Below will be the minigame section
+function aCM.RenderMinigame()
+	if aCM.CurrentMinigame == nil then return end
 
-    local function updateHTML()
-    	if aCM.HTML.documentReady == false then return end
-    	if aCM.HTML == nil or !IsValid(aCM.HTML) or !ispanel(aCM.HTML) then return end
-	    if aCM.HTML == nil or !ispanel(aCM.HTML) then return end
-		if aCM.Patient == nil or !IsValid(aCM.Patient) then return end
-		if aCM.Patient.aCM == nil then return end
+	if aCM.CurrentMinigame.type == "bone" then
+		if !LocalPlayer():GetWeapon("acm_splint"):IsValid() then return end
+		if LocalPlayer():GetActiveWeapon():GetClass() != "acm_splint" then 
+			aCM.CurrentMinigame = nil
+			return
+		end
 
-    	aCM.HTML:RunJavascript([[
-			var timer = document.getElementById("tod");
-			if (timer) {
-				timer.innerText = "ESTIMATED TUD: ]]..aCM.FormatTime(ply.aCM.TimeUntilDead-CurTime())..[[";
-			}
+		if LocalPlayer():GetWeapon("acm_splint"):Clip1() > 0 then
+			aCM.RenderBoneMinigame()
+		else
+			aCM.CurrentMinigame = nil
+		end
+	elseif aCM.CurrentMinigame.type == "bleed" then
+		if !LocalPlayer():GetWeapon("acm_bandage"):IsValid() then return end
+		if LocalPlayer():GetActiveWeapon():GetClass() != "acm_bandage" then 
+			aCM.CurrentMinigame = nil
+			return
+		end
 
-			var bleeds = document.getElementById("bleeds");
-			if (bleeds) {
-				bleeds.innerText = ]]..aCM.Patient.aCM.totalBleeds..[[;
-			}
+		if LocalPlayer():GetWeapon("acm_bandage"):Clip1() > 0 then
+			aCM.RenderBleedMinigame()
+		else
+			aCM.CurrentMinigame = nil
+		end
+	end
+end
 
-			var breaks = document.getElementById("breaks");
-			if (breaks) {
-				breaks.innerText = ]]..aCM.Patient.aCM.totalBrokenBones..[[;
-			}
-		]])
-    end
+function aCM.RenderBoneMinigame()
+	local minigame = aCM.CurrentMinigame
 
-    updateHTML()
+	minigame.progress = (minigame.progress+(FrameTime()*minigame.difficulty))%200
+	local width = math.Remap(math.sin(minigame.progress), -1, 1, 0, 1)*200
 
-    local pos = ragdoll:GetPos()
-	local forward = Entity(1):GetForward()
-	local forwardAngle = forward:Angle()
+	-- Progress bar
+	draw.RoundedBox(3, ScrW()/2 - 100, ScrH()/2 - 5, 200, 10, Color(25,25,25, 150))
 
-	cam.Start3D2D(pos+Vector(0,0,40), Angle(0, forwardAngle.y - 90, forwardAngle.r + 90), 0.1)
-		if aCM.HTML:IsVisible() == false then aCM.HTML:SetVisible(true) end
-		aCM.HTML:PaintManual()
-	cam.End3D2D()
+	draw.RoundedBoxEx(0, ScrW()/2+100-20, ScrH()/2 - 5, 20, 10, Color(0,255,0), true, false, true, false)
+	draw.RoundedBoxEx(0, ScrW()/2-100, ScrH()/2 - 5, 20, 10, Color(0,255,0), false, true, false, true)
+
+	draw.RoundedBox(3, ScrW()/2 - width/2, ScrH()/2 - 5, width, 10, Color(255,255,255))
+
+	if LocalPlayer():KeyPressed(IN_ATTACK) then
+		if width > 160 then
+			-- We've beat the game!
+			net.Start("aCM.FixNode")
+				net.WriteEntity(aCM.Patient)
+				net.WriteTable(aCM.CurrentMinigame)
+			net.SendToServer()
+
+			aCM.CurrentMinigame = nil
+		else
+			-- They failed, let's punish them for it
+		end
+	end
+end
+
+function aCM.RenderBleedMinigame()
+	local minigame = aCM.CurrentMinigame
+
+	minigame.progress = math.Clamp(minigame.progress-FrameTime()*(minigame.difficulty*50), 0, 200)
+	local width = minigame.progress
+
+	-- Progress bar
+	draw.RoundedBox(3, ScrW()/2 - 100, ScrH()/2 - 5, 200, 10, Color(25,25,25, 150))
+
+	draw.RoundedBoxEx(0, ScrW()/2+100-20, ScrH()/2 - 5, 20, 10, Color(0,255,0), true, false, true, false)
+	draw.RoundedBoxEx(0, ScrW()/2-100, ScrH()/2 - 5, 20, 10, Color(0,255,0), false, true, false, true)
+
+	draw.RoundedBox(3, ScrW()/2 - width/2, ScrH()/2 - 5, width, 10, Color(255,0,0))
+
+	if LocalPlayer():KeyPressed(IN_ATTACK) then
+		minigame.progress = minigame.progress + 20
+
+		if minigame.progress >= 180 then
+			-- We've beat the game!
+			net.Start("aCM.FixNode")
+				net.WriteEntity(aCM.Patient)
+				net.WriteTable(aCM.CurrentMinigame)
+			net.SendToServer()
+
+			aCM.CurrentMinigame = nil
+		end
+	end
+end
+
+function aCM.RenderDownIcons()
+	local shouldContinue = true
+	if DarkRP != nil then
+		if aCM.Config.MedicRolesEnabled then
+			if !table.HasValue(aCM.Config.MedicRoles, LocalPlayer():Team()) then
+				shouldContinue = false
+			end
+		end
+	end
+	if !shouldContinue then return end
+
+	for ply, panel in pairs(aCM.DownedPlayers) do
+		if !ply:IsValid() then continue end
+		if type(panel) != "Panel" or !panel:IsValid() then continue end
+		if ply:GetNWEntity("aCM.RagdollEntity") == nil or !ply:GetNWEntity("aCM.RagdollEntity"):IsValid() then continue end
+
+		local loc = ply:GetNWEntity("aCM.RagdollEntity"):GetPos():ToScreen()
+		local dist = ply:GetNWEntity("aCM.RagdollEntity"):GetPos():Distance(LocalPlayer():GetPos())
+		dist = math.Clamp(1/dist*10000, 16, 48)
+
+		local size = math.Clamp(dist*CurTime()%dist, 16, 48)
+
+		panel:SetPos(loc.x - size/2, loc.y-size/2)
+		panel:SetSize(size, size)
+	end
+end
+
+hook.Add("HUDPaint", "aCM.HUDPaint", function()
+	-- Let's draw the icon for downed players.
+	aCM.RenderDownIcons()
+
+	-- Here, we'll handle showing the overlay for broken bones/bleeds
+	if aCM.Patient == nil or !IsValid(aCM.Patient) then return end
+	if aCM.Patient.aCM.RagdollEntity == nil or !IsValid(aCM.Patient.aCM.RagdollEntity) then return end
+
+    aCM.RenderBleeds(ply, ragdoll)
+	aCM.RenderBones(ply, ragdoll)
+
+	if aCM.CurrentMinigame != nil then
+		aCM.RenderMinigame()
+	end
 end)

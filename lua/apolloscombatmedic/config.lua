@@ -17,7 +17,7 @@ aCM.Config = { -- Don't touch
 	-- Should bleeding (and blood loss) be enabled?
 	Bleeding = true,
 		-- If the below is set to false, one bandage will be required for every bleed (every gunshot, etc.)
-		BandageFixesWholePart = true,
+		BandageFixesWholePart = false,
 		-- May be too gruesome for the queasy, just stops the script from making blood decals.
 		BloodVisuals = true,
 
@@ -39,5 +39,26 @@ aCM.Config = { -- Don't touch
 
 	-- If set to true and the killing blow was to the players head, they do not ragdoll and thus do not have the chance to be revived. They will be fully dead.
 	-- This doesn't change the amount of damage to the player, and only counts the damage that killed the player (so if a player gets shot in the head and lives, it won't count)
-	InstaDeathHeadshots = true
+	InstaDeathHeadshots = true,
+
+	-- This is a list of weapons that wont trigger a bleed/break response. Put any weapons that heal you here.
+	-- The first argument is the classname of the tool (Right click in the Spawnmenu > Copy to Clipboard)
+	-- The second argument is whether or not this weapon is blacklisted from doing damage
+	WeaponBlacklist = {
+		['gmod_tool'] = true,
+		['weapon_physgun'] = true,
+		-- Your weapons go here!
+	},
+
+	-- Can only be used in DarkRP. This will let us determine who should see the icon for downed players.
+	-- In other gamemodes, the script will default to everyone seeing the downed player icon.
+	MedicRolesEnabled = false,
+
+	MedicRoles = {
+		TEAM_MEDIC,
+		TEAM_MEDIC_CO
+	},
+
+	-- If the below is true, only medics will be able to use medical items. If a non-medic manages to obtain a Trauma Kit, they will not be able to use it.
+	StrictMedicRules = false,
 } -- Don't touch

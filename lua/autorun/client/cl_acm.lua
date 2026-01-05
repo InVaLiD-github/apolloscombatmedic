@@ -10,6 +10,8 @@ aCM.TimeOfAssessment = nil
 aCM.Patient = nil
 aCM.TimeOfDeath = 0
 aCM.TimeUntilDeath = 0
+aCM.CurrentMinigame = nil
+aCM.DownedPlayers = {}
 
 aCM.HitGroupDictionary = {
 	[HITGROUP_GENERIC] = "Body Overall",
@@ -21,6 +23,18 @@ aCM.HitGroupDictionary = {
 	[HITGROUP_LEFTLEG] = "Left Leg",
 	[HITGROUP_RIGHTLEG] = "Right Leg",
 	[HITGROUP_GEAR] = "Belt",
+}
+
+aCM.HitGroupBoneTranslation = {
+	[HITGROUP_GENERIC] = "ValveBiped.Bip01_Pelvis",
+	[HITGROUP_HEAD] = "ValveBiped.Bip01_Head1",
+	[HITGROUP_CHEST] = "ValveBiped.Bip01_Spine2",
+	[HITGROUP_STOMACH] = "ValveBiped.Bip01_Spine",
+	[HITGROUP_LEFTARM] = "ValveBiped.Bip01_L_Forearm",
+	[HITGROUP_RIGHTARM] = "ValveBiped.Bip01_R_Forearm",
+	[HITGROUP_LEFTLEG] = "ValveBiped.Bip01_L_Calf",
+	[HITGROUP_RIGHTLEG] = "ValveBiped.Bip01_R_Calf",
+	[HITGROUP_GEAR] = "ValveBiped.Bip01_Pelvis",
 }
 
 function aCM.StartAssessment(ply)
@@ -46,11 +60,48 @@ function aCM.StartAssessment(ply)
 		net.Start("aCM.Assessment")
 			net.WriteEntity(ragdoll)
 		net.SendToServer()
-
 		ragdoll.wasAssessed = true
 	end)
 end
 
+function aCM.ProcessBleeds(target)
+	target.aCM.totalBleeds = 0
+	target.aCM.bleedBonePositions = {}
+
+	local bleeds = 0
+	for loc,amount in pairs(target.aCM.bleeds) do
+		if aCM.Config.BandageFixesWholePart == true then
+			if amount != 0 then
+				bleeds = bleeds + 1
+				target.aCM.bleedBonePositions[loc] = target.aCM.bleedBonePositions[loc] or 0
+				target.aCM.bleedBonePositions[loc] = target.aCM.bleedBonePositions[loc] + 1
+			end
+		else
+			if amount != 0 then
+				bleeds = bleeds + amount
+				target.aCM.bleedBonePositions[loc] = target.aCM.bleedBonePositions[loc] or 0
+				target.aCM.bleedBonePositions[loc] = target.aCM.bleedBonePositions[loc] + amount
+			end
+		end
+	end
+	target.aCM.totalBleeds = bleeds
+
+	return bleeds
+end
+
+function aCM.ProcessBones(target)
+	local brokenBonesString = ""
+	local bones = 0
+	for loc,broken in pairs(target.aCM.brokenBones) do
+		if !broken then continue end
+
+		brokenBonesString = brokenBonesString..(bones != 0 and ", " or "")..aCM.HitGroupDictionary[loc]
+		bones = bones + 1
+	end
+	target.aCM.totalBrokenBones = bones
+
+	return brokenBonesString, bones
+end
 
 gameevent.Listen( "player_activate" )
 hook.Add("player_activate", "aCM.PlayerActivate", function(data) 
@@ -70,10 +121,21 @@ hook.Add("Think", "aCM.Think", function()
 	if ent:GetNWBool("aCM.Ragdoll") != true then return end
 
 	-- Assess Player
+
 	if LocalPlayer():KeyDown(IN_USE) and LocalPlayer():GetActiveWeapon():GetClass() == "acm_medkit" then
+		if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
+			if !table.HasValue(aCM.Config.MedicRoles, LocalPlayer():Team()) then
+				return
+			end
+		end
+
 		if aCM.Assessing == false then
 			if ent.wasAssessed != true then
 				aCM.StartAssessment(ent:GetNWEntity("aCM.Player"))
+			else
+				net.Start("aCM.Assessment")
+					net.WriteEntity(ent)
+				net.SendToServer()
 			end
 		end
 	end
@@ -85,34 +147,24 @@ net.Receive("aCM.UpdatePlayer", function()
 	LocalPlayer().aCM = net.ReadTable()
 end)
 
+net.Receive("aCM.UpdateDoctor", function()
+	local tbl = net.ReadTable()
+	local patient = net.ReadEntity()
+
+	patient.aCM = tbl
+
+	local bleeds = aCM.ProcessBleeds(patient)
+	local brokenBonesString, bones = aCM.ProcessBones(patient)
+end)
+
 net.Receive("aCM.Assessment", function()
 	local aCMTable = net.ReadTable()
 	local target = net.ReadEntity()
 
 	target.aCM = aCMTable
 
-	target.aCM.totalBleeds = 0
-
-	local bleeds = 0
-	for _,amount in pairs(target.aCM.bleeds) do
-		if aCM.Config.BandageFixesWholePart == true then
-			if amount != 0 then
-				bleeds = bleeds + 1
-			end
-		else
-			bleeds = bleeds + amount
-		end
-	end
-
-	local brokenBonesString = ""
-	local bones = 0
-	for loc,_ in pairs(target.aCM.brokenBones) do
-		brokenBonesString = brokenBonesString..(bones != 0 and ", " or "")..aCM.HitGroupDictionary[loc]
-		bones = bones + 1
-	end
-
-	target.aCM.totalBrokenBones = bones
-	target.aCM.totalBleeds = bleeds
+	local bleeds = aCM.ProcessBleeds(target)
+	local brokenBonesString, bones = aCM.ProcessBones(target)
 
 	aCM.Patient = target
 	aCM.SetPatientHTML()
@@ -147,6 +199,31 @@ net.Receive("aCM.PlayerRevived", function()
 
 	if aCM.Patient == ply then
 		aCM.Patient = nil
+		aCM.CurrentMinigame = nil
 		aCM.SetDownedHTML()
+
+		if aCM.DownedPlayers[ply] != nil and aCM.DownedPlayers[ply]:IsValid() then
+			aCM.DownedPlayers[ply]:Remove()
+		end
 	end
+end)
+
+net.Receive("aCM.DownedPlayers", function()
+	local downedPlayers = net.ReadTable()
+
+	for ply, panel in pairs(aCM.DownedPlayers) do
+		if type(panel) == "Panel" then
+			panel:Remove()
+		end
+	end
+
+	for ply, down in pairs(downedPlayers) do
+		if down != false then
+			aCM.DownedPlayers[ply] = vgui.Create("DImage")
+			aCM.DownedPlayers[ply]:SetImage("icon16/heart.png")
+			aCM.DownedPlayers[ply]:SetSize(32,32)
+		end
+	end
+
+
 end)

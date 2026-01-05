@@ -12,7 +12,19 @@ if SERVER then
 	util.AddNetworkString("aCMSplint.ActionSucceeded")
 end
 
--- Bandages
+game.AddAmmoType( {
+	name = "ACM_SPLINT",
+	dmgtype = DMG_GENERIC, 
+	tracer = TRACER_NONE,
+	plydmg = 0,
+	npcdmg = 0,
+	force = 0,
+	maxcarry = 50,
+	minsplash = 0,
+	maxsplash = 0
+} )
+
+-- Splints
 SWEP.Primary.ClipSize = 10
 SWEP.Primary.DefaultClip = 10
 SWEP.Primary.Automatic = false
@@ -20,10 +32,9 @@ SWEP.Primary.Ammo = "ACM_SPLINT"
 SWEP.PrimaryTime = 0
 SWEP.PrimaryDelay = 2.5
 
-SWEP.Secondary.ClipSize = 10
-SWEP.Secondary.DefaultClip = 10
-SWEP.Secondary.Automatic = false
-SWEP.Secondary.Ammo = "ACM_SPLINT"
+SWEP.Secondary.ClipSize    = -1
+SWEP.Secondary.DefaultClip = -1
+SWEP.Secondary.Ammo        = "none"
 SWEP.SecondaryTime = 0
 SWEP.SecondaryDelay = 2.5
 
@@ -40,7 +51,14 @@ function SWEP:PrimaryAttack()
 	if self:Clip1() <= 0 then return end
 	if CurTime() < self.PrimaryTime then return end
 
+	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
+		if !table.HasValue(aCM.Config.MedicRoles, self.Owner:Team()) then
+			return
+		end
+	end
+
 	local ply, ragdoll = aCM.FindTarget(self.Owner)
+	if ragdoll != nil then return end -- Don't perform actions on ragdolls. Assessment UI will heal downed players.
 	if ply == nil or !IsValid(ply) then return end
 
 	if SERVER then
@@ -72,6 +90,12 @@ end
 function SWEP:SecondaryAttack()
 	if self:Clip1() <= 0 then return end
 	if CurTime() < self.SecondaryTime then return end
+
+	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
+		if !table.HasValue(aCM.Config.MedicRoles, self.Owner:Team()) then
+			return
+		end
+	end
 
 	if SERVER then
 		local nextLocTarget = 0

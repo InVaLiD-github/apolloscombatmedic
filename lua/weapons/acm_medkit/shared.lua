@@ -9,18 +9,18 @@ SWEP.WorldModel = "models/weapons/w_acm_kit.mdl" -- This is the model shown to a
 SWEP.UseHands = true
 
 -- Bandages
-SWEP.Primary.ClipSize = 30
-SWEP.Primary.DefaultClip = 30
+SWEP.Primary.ClipSize = -1
+SWEP.Primary.DefaultClip = -1
 SWEP.Primary.Automatic = false
-SWEP.Primary.Ammo = "ACM_BANDAGE"
+SWEP.Primary.Ammo = "none"
 SWEP.PrimaryTime = 0
 SWEP.PrimaryDelay = 1
 
 --Splints
-SWEP.Secondary.ClipSize = 10
-SWEP.Secondary.DefaultClip = 10
+SWEP.Secondary.ClipSize = -1
+SWEP.Secondary.DefaultClip = -1
 SWEP.Secondary.Automatic = false
-SWEP.Secondary.Ammo = "ACM_SPLINT"
+SWEP.Secondary.Ammo = "none"
 SWEP.SecondaryTime = 0
 SWEP.SecondaryDelay = 1
 
@@ -40,90 +40,12 @@ function SWEP:DoAnimation(anim)
 end
 
 function SWEP:PrimaryAttack()
-	if self:Clip1() <= 0 then 
-		if CLIENT then surface.PlaySound("WallHealth.Deny") end
-		return 
-	end
-	if CurTime() < self.PrimaryTime then return end
-
-	local ply, ragdoll = aCM.FindTarget(self.Owner)
-	if ply == nil or !IsValid(ply) then return end
-	if ragdoll == nil or !IsValid(ragdoll) then return end
-
-	if SERVER then
-		if aCM.DoctorCache[self.Owner] != ply then return end
-
-		local nextLocTarget = 0
-
-		for location, amount in pairs(ply.aCM.bleeds) do
-			if amount != 0 then
-				nextLocTarget = location
-				break
-			end
+	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
+		if !table.HasValue(aCM.Config.MedicRoles, self.Owner:Team()) then
+			return
 		end
-
-		if nextLocTarget == 0 then return end
-
-
-		if aCM.Config.BandageFixesWholePart == true then
-			aCM.FixAllBleeds(ply, nextLocTarget)
-		else
-			aCM.FixBleeds(ply, nextLocTarget)
-		end
-
-		self:DoAnimation("anim_fire")
-		self:TakePrimaryAmmo(1)
-		
-		net.Start("aCMKit.ActionSucceeded")
-		net.Send(self.Owner)
 	end
 
-	self:SetNextPrimaryFire(5)
-	self.PrimaryTime = CurTime()+self.PrimaryDelay
-
-	return
-end
-
-function SWEP:SecondaryAttack()
-	if self:Clip2() <= 0 then 
-		if CLIENT then surface.PlaySound("WallHealth.Deny") end
-		return 
-	end
-	if CurTime() < self.SecondaryTime then return end
-
-	local ply, ragdoll = aCM.FindTarget(self.Owner)
-	if ply == nil or !IsValid(ply) then return end
-	if ragdoll == nil or !IsValid(ragdoll) then return end
-
-	if SERVER then
-		if aCM.DoctorCache[self.Owner] != ply then return end
-
-		local nextLocTarget = 0
-
-		for location, state in pairs(ply.aCM.brokenBones) do
-			if state == true then
-				nextLocTarget = location
-				break
-			end
-		end
-
-		if nextLocTarget == 0 then return end
-
-		aCM.FixBone(ply, nextLocTarget)
-
-		self:DoAnimation("anim_fire")
-		self:TakeSecondaryAmmo(1)
-		net.Start("aCMKit.ActionSucceeded")
-		net.Send(self.Owner)
-	end
-
-	self:SetNextSecondaryFire(5)
-	self.SecondaryTime = CurTime()+self.SecondaryDelay
-	
-	return
-end
-
-function SWEP:Reload()
 	local ply, ragdoll = aCM.FindTarget(self.Owner)
 	if ply == nil or !IsValid(ply) then return end
 	if ragdoll == nil or !IsValid(ragdoll) then return end
@@ -149,6 +71,16 @@ function SWEP:Reload()
 	end
 
 	self.ReloadTime = CurTime()+self.ReloadDelay
+
+	return
+end
+
+function SWEP:SecondaryAttack()
+	return
+end
+
+function SWEP:Reload()
+
 end
 
 function SWEP:Initialize()
@@ -175,13 +107,11 @@ elseif CLIENT then
 		
 	    local html = [[
 	    	<div id="body">
-		    	<h1>MEDKIT</h1>
+		    	<h1>TRAUMA KIT</h1>
 
 		    	<div id="content">
 		    		<p><b>E</b>: ASSESS PLAYER</p>
-			    	<p><b>M1</b>: BANDAGE</p>
-			    	<p><b>M2</b>: SPLINT</p>
-			    	<p><b>R</b>: REVIVE PLAYER</p>
+			    	<p><b>M1</b>: REVIVE PLAYER</p>
 		    	</div>
 		    </div>
 
@@ -192,7 +122,7 @@ elseif CLIENT then
 					
 					background-color: #0000;
 					overflow: hidden;
-					font-size: 7vh;
+					font-size: 10vh;
 					margin: 0;
 					padding: 0;
 				}
@@ -230,7 +160,7 @@ elseif CLIENT then
 			local frame = self.Frame
 
 			frame:SetTitle("")
-			frame:SetSize(ScrW()/8, ScrH()/4)
+			frame:SetSize(ScrW()/8, ScrH()/8)
 			frame:SetPos(ScrW()-(frame:GetWide()), 0)
 			frame:ShowCloseButton(false)
 

@@ -7,10 +7,14 @@ util.AddNetworkString("aCM.UpdatePlayer")
 util.AddNetworkString("aCM.CanRespawn")
 util.AddNetworkString("aCM.IsDead")
 util.AddNetworkString("aCM.PlayerRevived")
+util.AddNetworkString("aCM.FixNode")
+util.AddNetworkString("aCM.UpdateDoctor")
+util.AddNetworkString("aCM.DownedPlayers")
 
 aCM.BleedingPlayers = {}
 aCM.DoctorCache = {} -- Stores the list of patients, indexed by the doctor player.
 aCM.PatientCache = {} -- Stores the list of doctors, indexed by the patient player.
+aCM.DownedPlayers = {}
 
 aCM.HitGroupDictionary = {
 	[HITGROUP_GENERIC] = "Body Overall",
@@ -117,6 +121,13 @@ function aCM.UpdatePlayer(ply)
 	net.Send(ply)
 end
 
+function aCM.UpdateDoctor(ply)
+	net.Start("aCM.UpdateDoctor")
+		net.WriteTable(aCM.DoctorCache[ply].aCM)
+		net.WriteEntity(aCM.DoctorCache[ply])
+	net.Send(ply)
+end
+
 function aCM.CreateBleed(ply, location)
 	ply.aCM.bleeds[location] = ply.aCM.bleeds[location] + 1
 
@@ -162,6 +173,7 @@ function aCM.FixAllBleeds(ply, location)
 	end
 
 	aCM.UpdatePlayer(ply)
+	aCM.UpdateDoctor(aCM.PatientCache[ply])
 end
 
 function aCM.FixBleed(ply, location)
@@ -191,6 +203,7 @@ function aCM.FixBleed(ply, location)
 	end
 
 	aCM.UpdatePlayer(ply)
+	aCM.UpdateDoctor(aCM.PatientCache[ply])
 end
 
 function aCM.FixBone(ply, bone)
@@ -210,6 +223,7 @@ function aCM.FixBone(ply, bone)
 	ply.aCM.BrokenBoneCount = brokenBones
 
 	aCM.UpdatePlayer(ply)
+	aCM.UpdateDoctor(aCM.PatientCache[ply])
 end
 
 function aCM.BreakBone(ply, bone)
@@ -306,6 +320,11 @@ function aCM.RagdollPlayer(ply)
 
     ply:SetNWEntity("aCM.RagdollEntity", ragdoll)
 
+	aCM.DownedPlayers[ply] = true
+	net.Start("aCM.DownedPlayers")
+		net.WriteTable(aCM.DownedPlayers)
+	net.Broadcast()
+
     aCM.UpdatePlayer(ply)
 end
 
@@ -388,6 +407,12 @@ function aCM.StopRagdollPlayer(ply, noSpawn)
     		aCM.AdjustSpeeds(ply, true)
     	end
     end
+
+	aCM.DownedPlayers[ply] = false
+	
+	net.Start("aCM.DownedPlayers")
+		net.WriteTable(aCM.DownedPlayers)
+	net.Broadcast()
 
     aCM.UpdatePlayer(ply)
 end
@@ -534,6 +559,9 @@ end
 function aCM.SetDoctor(doctor, patient)
 	aCM.DoctorCache[doctor] = patient
 	aCM.PatientCache[patient] = doctor
+
+	patient.aCM.Doctor = doctor
+	doctor.aCM.Patient = patient
 end
 
 function aCM.DoDeath(ply)
@@ -603,6 +631,10 @@ end
 hook.Add("EntityTakeDamage", "aCM.EntityTakeDamage", function(target, dmgInfo)
 	if target == nil or !IsValid(target) then return end
 	if !target:IsPlayer() then return end
+
+	if aCM.Config.WeaponBlacklist[dmgInfo:GetWeapon():GetClass()] == true then
+		return
+	end
 
 	local ply = target -- For convenience, since we know at this point the target is a player.
 
@@ -723,7 +755,50 @@ timer.Create("aCM.BleedTimer", 5, 0, aCM.BleedThink)
 
 net.Receive("aCM.Assessment", function(len, ply)
 	local ragdoll = net.ReadEntity()
+
+	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
+		if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+			return
+		end
+	end
+
 	aCM.PlayerAssessRagdoll(ply, ragdoll)
+end)
+
+net.Receive("aCM.FixNode", function(len, ply)
+	local patient = net.ReadEntity()
+	local minigame = net.ReadTable()
+
+	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
+		if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+			return
+		end
+	end
+	
+	if minigame.type == "bleed" then
+		if !ply:GetWeapon("acm_bandage"):IsValid() then return end
+
+		if ply:GetWeapon("acm_bandage"):Clip1() - 1 >= 0 then
+			if aCM.Config.BandageFixesWholePart == true then
+				aCM.FixAllBleeds(patient, minigame.hitgroup)
+			else
+				aCM.FixBleed(patient, minigame.hitgroup)
+			end
+
+			ply:GetWeapon("acm_bandage"):SetClip1(ply:GetWeapon("acm_bandage"):Clip1() - 1)
+			ply:GetWeapon("acm_bandage"):DoAnimation("anim_fire")
+			ply:EmitSound("acm/bandage.mp3")
+		end
+	elseif minigame.type == "bone" then
+		if !ply:GetWeapon("acm_splint"):IsValid() then return end
+
+		if ply:GetWeapon("acm_splint"):Clip1() - 1 >= 0 then
+			aCM.FixBone(patient, minigame.hitgroup)
+			ply:GetWeapon("acm_splint"):SetClip1(ply:GetWeapon("acm_splint"):Clip1() - 1)
+			ply:GetWeapon("acm_splint"):DoAnimation("anim_fire")
+			ply:EmitSound("acm/snap.mp3")
+		end
+	end
 end)
 
 net.Receive("aCM.Loaded", function(len, ply)

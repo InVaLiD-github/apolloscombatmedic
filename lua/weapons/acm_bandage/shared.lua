@@ -53,11 +53,11 @@ function SWEP:PrimaryAttack()
 
 	if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
 		if aCM.Config.DarkRPEnabled then
-			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+			if !table.HasValue(aCM.Config.MedicRoles, self.Owner:Team()) then
 				return
 			end
 		else
-			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			local customCheck = aCM.Config.MedicRoleCustomCheck(self.Owner)
 			if customCheck != true then return end
 		end
 	end
@@ -103,11 +103,11 @@ function SWEP:SecondaryAttack()
 
 	if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
 		if aCM.Config.DarkRPEnabled then
-			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+			if !table.HasValue(aCM.Config.MedicRoles, self.Owner:Team()) then
 				return
 			end
 		else
-			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			local customCheck = aCM.Config.MedicRoleCustomCheck(self.Owner)
 			if customCheck != true then return end
 		end
 	end

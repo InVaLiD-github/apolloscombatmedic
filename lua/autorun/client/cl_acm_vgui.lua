@@ -414,7 +414,7 @@ function aCM.RenderDownIcons()
 				shouldContinue = false
 			end
 		else
-			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			local customCheck = aCM.Config.MedicRoleCustomCheck(LocalPlayer())
 			if customCheck != true then shouldContinue = false end
 		end
 	end

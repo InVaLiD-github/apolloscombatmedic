@@ -53,6 +53,7 @@ aCM.Config = { -- Don't touch
 	-- Can only be used in DarkRP. This will let us determine who should see the icon for downed players.
 	-- In other gamemodes, the script will default to everyone seeing the downed player icon.
 	MedicRolesEnabled = false,
+	DarkRPEnabled = false,
 
 	MedicRoles = {
 		TEAM_MEDIC,

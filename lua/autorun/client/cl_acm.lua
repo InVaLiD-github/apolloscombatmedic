@@ -123,11 +123,16 @@ hook.Add("Think", "aCM.Think", function()
 	-- Assess Player
 
 	if LocalPlayer():KeyDown(IN_USE) and LocalPlayer():GetActiveWeapon():GetClass() == "acm_medkit" then
-		if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
-			if !table.HasValue(aCM.Config.MedicRoles, LocalPlayer():Team()) then
-				return
-			end
-		end
+		if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
+            if aCM.Config.DarkRPEnabled then
+                if !table.HasValue(aCM.Config.MedicRoles, LocalPlayer():Team()) then
+                    return
+                end
+            else
+                local customCheck = aCM.Config.MedicRoleCustomCheck(LocalPlayer())
+                if customCheck != true then return end
+            end
+        end
 
 		if aCM.Assessing == false then
 			if ent.wasAssessed != true then

@@ -65,6 +65,10 @@ aCM.OnDamaged = {
 }
 
 aCM.OnBoneBroken = {
+	[HITGROUP_GENERIC] = function(ply)
+		aCM.CreateBleed(ply, HITGROUP_HEAD)
+        print("aCM: Warning! Found strange hitgroups on model "..ply:GetModel().."; Bones may not break on this playermodel!")
+	end,
     [HITGROUP_CHEST] = function(ply)
         if aCM.Config.BrokenRibsPreventSprint then
             aCM.AdjustSpeeds(ply, true)
@@ -132,7 +136,6 @@ end
 
 function aCM.CreateBleed(ply, location)
 	ply.aCM.bleeds[location] = ply.aCM.bleeds[location] + 1
-
 
 	local bleeds = 0
 	for _,l in pairs(ply.aCM.bleeds) do

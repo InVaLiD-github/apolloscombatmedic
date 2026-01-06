@@ -51,9 +51,14 @@ function SWEP:PrimaryAttack()
 	if self:Clip1() <= 0 then return end
 	if CurTime() < self.PrimaryTime then return end
 
-	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
-		if !table.HasValue(aCM.Config.MedicRoles, self.Owner:Team()) then
-			return
+	if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
+		if aCM.Config.DarkRPEnabled then
+			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+				return
+			end
+		else
+			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			if customCheck != true then return end
 		end
 	end
 
@@ -91,9 +96,14 @@ function SWEP:SecondaryAttack()
 	if self:Clip1() <= 0 then return end
 	if CurTime() < self.SecondaryTime then return end
 
-	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
-		if !table.HasValue(aCM.Config.MedicRoles, self.Owner:Team()) then
-			return
+	if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
+		if aCM.Config.DarkRPEnabled then
+			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+				return
+			end
+		else
+			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			if customCheck != true then return end
 		end
 	end
 

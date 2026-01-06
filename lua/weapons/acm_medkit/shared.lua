@@ -40,9 +40,14 @@ function SWEP:DoAnimation(anim)
 end
 
 function SWEP:PrimaryAttack()
-	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
-		if !table.HasValue(aCM.Config.MedicRoles, self.Owner:Team()) then
-			return
+	if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
+		if aCM.Config.DarkRPEnabled then
+			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+				return
+			end
+		else
+			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			if customCheck != true then return end
 		end
 	end
 

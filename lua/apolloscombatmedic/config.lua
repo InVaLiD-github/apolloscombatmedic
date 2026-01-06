@@ -61,4 +61,9 @@ aCM.Config = { -- Don't touch
 
 	-- If the below is true, only medics will be able to use medical items. If a non-medic manages to obtain a Trauma Kit, they will not be able to use it.
 	StrictMedicRules = false,
+
+	--ADVANCED: If you do not have DarkRP but would still like to specify some players as medics, return true on this function.
+	MedicRoleCustomCheck = function(ply)
+		-- Your lua here.
+	end
 } -- Don't touch

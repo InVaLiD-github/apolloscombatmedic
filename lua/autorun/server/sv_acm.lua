@@ -123,7 +123,7 @@ end
 
 function aCM.UpdateDoctor(ply)
 	if aCM.DoctorCache[ply] == nil or !aCM.DoctorCache[ply]:IsValid() or aCM.DoctorCache[ply].aCM == nil then return end
-	
+
 	net.Start("aCM.UpdateDoctor")
 		net.WriteTable(aCM.DoctorCache[ply].aCM)
 		net.WriteEntity(aCM.DoctorCache[ply])
@@ -633,7 +633,7 @@ end
 hook.Add("EntityTakeDamage", "aCM.EntityTakeDamage", function(target, dmgInfo)
 	if target == nil or !IsValid(target) then return end
 	if !target:IsPlayer() then return end
-
+	
 	if aCM.Config.WeaponBlacklist[dmgInfo:GetWeapon():GetClass()] == true then
 		return
 	end
@@ -758,9 +758,14 @@ timer.Create("aCM.BleedTimer", 5, 0, aCM.BleedThink)
 net.Receive("aCM.Assessment", function(len, ply)
 	local ragdoll = net.ReadEntity()
 
-	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
-		if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
-			return
+	if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
+		if aCM.Config.DarkRPEnabled then
+			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+				return
+			end
+		else
+			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			if customCheck != true then return end
 		end
 	end
 
@@ -771,9 +776,14 @@ net.Receive("aCM.FixNode", function(len, ply)
 	local patient = net.ReadEntity()
 	local minigame = net.ReadTable()
 
-	if DarkRP != nil and aCM.Config.StrictMedicRules and aCM.Config.MedicRolesEnabled then
-		if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
-			return
+	if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
+		if aCM.Config.DarkRPEnabled then
+			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
+				return
+			end
+		else
+			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			if customCheck != true then return end
 		end
 	end
 	

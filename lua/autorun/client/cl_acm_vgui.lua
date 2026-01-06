@@ -408,11 +408,14 @@ end
 
 function aCM.RenderDownIcons()
 	local shouldContinue = true
-	if DarkRP != nil then
-		if aCM.Config.MedicRolesEnabled then
-			if !table.HasValue(aCM.Config.MedicRoles, LocalPlayer():Team()) then
+	if aCM.Config.MedicRolesEnabled then
+		if aCM.Config.DarkRPEnabled then
+			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then
 				shouldContinue = false
 			end
+		else
+			local customCheck = aCM.Config.MedicRoleCustomCheck(ply)
+			if customCheck != true then shouldContinue = false end
 		end
 	end
 	if !shouldContinue then return end

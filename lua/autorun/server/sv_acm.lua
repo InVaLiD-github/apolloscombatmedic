@@ -122,6 +122,8 @@ function aCM.UpdatePlayer(ply)
 end
 
 function aCM.UpdateDoctor(ply)
+	if aCM.DoctorCache[ply] == nil or !aCM.DoctorCache[ply]:IsValid() or aCM.DoctorCache[ply].aCM == nil then return end
+	
 	net.Start("aCM.UpdateDoctor")
 		net.WriteTable(aCM.DoctorCache[ply].aCM)
 		net.WriteEntity(aCM.DoctorCache[ply])

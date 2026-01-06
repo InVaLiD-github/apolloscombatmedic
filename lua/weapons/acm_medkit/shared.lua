@@ -85,7 +85,25 @@ function SWEP:SecondaryAttack()
 end
 
 function SWEP:Reload()
+	if !SERVER then return end
+	local ent = self.Owner:GetEyeTrace().Entity
+    if ent != nil and ent:IsValid() then
+        if CurTime() >= self.ReloadTime then
+			self.ReloadTime = CurTime() + self.ReloadDelay
+            
+            if ent:IsPlayer() then
+				if ent:Health() == ent:GetMaxHealth() then return end
 
+                if ent:Health() + aCM.Config.TraumaKitHealth > ent:GetMaxHealth() then
+					ent:SetHealth(ent:GetMaxHealth())
+				else
+					ent:SetHealth(ent:Health() + aCM.Config.TraumaKitHealth)
+				end
+                
+                self.Owner:EmitSound("items/smallmedkit1.wav")
+			end
+		end
+	end
 end
 
 function SWEP:Initialize()

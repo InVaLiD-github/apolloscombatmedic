@@ -1,4 +1,6 @@
 aCM.Config = { -- Don't touch
+	-- This determines how much health the Trauma Kit will give out every 2 seconds
+	TraumaKitHealth = 25,
 
 	 -- Set to false to remove leg damage completely. This won't make you not take damage when shot in the leg, it just makes the script not apply status effects to you.
 	LegDamage = true, 

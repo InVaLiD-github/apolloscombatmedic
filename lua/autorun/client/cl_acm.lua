@@ -122,7 +122,7 @@ hook.Add("Think", "aCM.Think", function()
 
 	-- Assess Player
 
-	if LocalPlayer():KeyDown(IN_USE) and LocalPlayer():GetActiveWeapon():GetClass() == "acm_medkit" then
+	if LocalPlayer():KeyPressed(IN_USE) and LocalPlayer():GetActiveWeapon():GetClass() == "acm_medkit" then
 		if aCM.Config.MedicRolesEnabled and aCM.Config.StrictMedicRules then
             if aCM.Config.DarkRPEnabled then
                 if !table.HasValue(aCM.Config.MedicRoles, LocalPlayer():Team()) then
@@ -165,6 +165,8 @@ end)
 net.Receive("aCM.Assessment", function()
 	local aCMTable = net.ReadTable()
 	local target = net.ReadEntity()
+
+	if target == aCM.Patient then return end
 
 	target.aCM = aCMTable
 

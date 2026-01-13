@@ -423,6 +423,7 @@ function aCM.StopRagdollPlayer(ply, noSpawn)
 end
 
 function aCM.RevivePlayer(ply)
+	if ply.aCM == nil then return end
 	if ply.aCM.RagdollData == nil then return end
 
 	aCM.StopRagdollPlayer(ply)
@@ -665,7 +666,13 @@ end)
 
 hook.Add("PlayerSpawn", "aCM.PlayerSpawn", function(ply)
 	if ply == nil or !IsValid(ply) then return end
-	if ply.aCM != nil and ply.aCM.JustStoppedRagdoll == true then return end
+
+	if ply.aCM != nil and ply.aCM.JustStoppedRagdoll == true then 
+		return 
+	else
+		-- Player has likely been force-respawned.
+		aCM.RevivePlayer(ply)
+	end
 
 	ply.aCM = {
 		brokenBones = {},

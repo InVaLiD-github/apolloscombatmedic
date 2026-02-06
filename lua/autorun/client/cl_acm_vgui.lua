@@ -408,6 +408,7 @@ end
 
 function aCM.RenderDownIcons()
 	local shouldContinue = true
+	local ply = LocalPlayer()
 	if aCM.Config.MedicRolesEnabled then
 		if aCM.Config.DarkRPEnabled then
 			if !table.HasValue(aCM.Config.MedicRoles, ply:Team()) then

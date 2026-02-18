@@ -423,8 +423,11 @@ function aCM.RenderDownIcons()
 
 	for ply, panel in pairs(aCM.DownedPlayers) do
 		if !ply:IsValid() then continue end
+		if ply:GetNWEntity("aCM.RagdollEntity") == nil or !ply:GetNWEntity("aCM.RagdollEntity"):IsValid() then 
+			if type(panel) == "Panel" and panel:IsValid() then panel:Remove() end
+			continue 
+		end
 		if type(panel) != "Panel" or !panel:IsValid() then continue end
-		if ply:GetNWEntity("aCM.RagdollEntity") == nil or !ply:GetNWEntity("aCM.RagdollEntity"):IsValid() then continue end
 
 		local loc = ply:GetNWEntity("aCM.RagdollEntity"):GetPos():ToScreen()
 		local dist = ply:GetNWEntity("aCM.RagdollEntity"):GetPos():Distance(LocalPlayer():GetPos())

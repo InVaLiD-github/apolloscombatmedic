@@ -128,7 +128,7 @@ function SWEP:SecondaryAttack()
 		if aCM.Config.BandageFixesWholePart == true then
 			aCM.FixAllBleeds(self.Owner, nextLocTarget)
 		else
-			aCM.FixBleeds(self.Owner, nextLocTarget)
+			aCM.FixBleed(self.Owner, nextLocTarget)
 		end
 
 		self.Owner:EmitSound("acm/bandage.mp3")
